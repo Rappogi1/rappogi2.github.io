@@ -1,0 +1,41 @@
+/* Style the list */
+ul.tab_filter {
+    width: 100%;
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: none;
+    background-color: #555555;
+}
+
+/* Float the list items side by side */
+ul.tab_filter li {width: 33.33%; float: left;}
+
+/* Style the links inside the list items */
+ul.tab_filter li a {
+    width: 79%;
+    display: inline-block;
+    color: white;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+    transition: 0.3s;
+    font-size: 17px;
+    border-left: 1px solid white;
+    border-right: 1px solid white;
+}
+
+/* Change background color of links on hover */
+ul.tab_filter li a:hover {background-color: #ddd;}
+
+/* Create an active/current tablink class */
+ul.tab_filter li a.active {background-color: #898989;}
+
+/* Style the tab content */
+.tabcontent {
+    display: none;
+
+    border: none;
+    border-top: none;
+}

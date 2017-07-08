@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>
+            DIREKSYON
+        </title>
+        <link rel="stylesheet" href="css_main.css">
+        <link rel="stylesheet" href="css_main2.css">
+        <link rel="stylesheet" href="css_main_search.css">
+        <link rel="stylesheet" href="css_main_date_time.css">
+        <link rel="stylesheet" href="css_main_filter.css">
+        <link rel="stylesheet" href="css_main_options.css">
+        
+        <link rel="stylesheet" href="css_main2_2.css">
+        <link rel="stylesheet" href="css_main_toll_2.css">
+        <link rel="stylesheet" href="css_main_options_2.css">
+        <script type="text/javascript" src="js_main.js"></script>
+        <script type="text/javascript" src="js_main_2.js"></script>
+        <script type="text/javascript" src="polyline.js"></script>        
+        <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro' rel='stylesheet' type='text/css'>
+        
+        
+        
+        
+         <!-- Leaftlet Part of The Head !-->
+        
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css"
+           integrity="sha512-07I2e+7D8p6he1SIM+1twR5TIrhUQn9+I6yjqD53JQjFiMf8EtC93ty0/5vJTZGF8aAocvHYNEDJajGdNx1IsQ=="
+           crossorigin=""/>
+
+         <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"
+           integrity="sha512-A7vV8IFfih/D732iSSKi20u/ooOfj/AGehOKq0f4vLT1Zr2Y+RX7C+w8A1gaSasGtRUZpF/NZgzSAu4/Gc41Lg=="
+           crossorigin=""></script>
+        
+            <!-- Load Esri Leaflet from CDN -->
+          <script src="https://unpkg.com/esri-leaflet@2.0.8"
+            integrity="sha384-ze7rgny7/YGFxBlVgTBdOABNWe5V9BYjju/qwqJhCU8XJHtuEnRlbUpN5lXyY706"
+            crossorigin=""></script>
+
+
+          <!-- Load Esri Leaflet Geocoder from CDN -->
+          <link rel="stylesheet" href="https://unpkg.com/esri-leaflet-geocoder@2.2.4/dist/esri-leaflet-geocoder.css"
+            integrity="sha384-cuElYVOZCs9f5kOmEIvZWm6M0CYP8T8dbA1Bx3XnXGatEha3FV9igr7r+S+AmEBt"
+            crossorigin="">
+          <script src="https://unpkg.com/esri-leaflet-geocoder@2.2.4"
+            integrity="sha384-WpOm6fpjH3TUoBE8JthsuXv2+PcXwi3fOwhg6zzbaiu5eshSRP+mEESWp8IPSkvK"
+            crossorigin=""></script>
+        
+            <link rel="stylesheet" href="https://js.arcgis.com/3.20/esri/css/esri.css">
+            <script src="https://js.arcgis.com/3.20/"></script>
+        
+        
+         
+
+        <script>
+            /* When the user clicks on the button, 
+            toggle between hiding and showing the dropdown content */
+            /*function myFunction() {
+                document.getElementById("myDropdown").classList.toggle("show");
+            }*/
+
+            // Close the dropdown menu if the user clicks outside of it
+            /*window.onclick = function(event) {
+              if (!event.target.matches('.dropbtn')) {
+
+                var dropdowns = document.getElementsByClassName("dropdown-content");
+                var i;
+                for (i = 0; i < dropdowns.length; i++) {
+                  var openDropdown = dropdowns[i];
+                  if (openDropdown.classList.contains('show')) {
+                    openDropdown.classList.remove('show');
+                  }
+                }
+              }
+            }*/
+        </script>
+        
+        <!-- Search Button Function that triggers the function that gets data from the OTP !-->
+        <script>
+            
+            require(["esri/tasks/locator"], function(Locator) { /* code goes here */ });
+            var changeColor;
+            var color = ["#4E9BFE","#D1353F","#5CC841","#CF38F4"];
+            var colorPath = ["Blue","Red","Green","#CF38F4"];
+            var walk = 0;
+            var bus = 1
+            var jeep = 2;
+            var train = 3;
+            var result;
+            
+            var count_color = 0;
+            var marker = [0];
+            var points;
+            var mypolyline = [0];
+            
+            var orglat, orglng, dstlat, dstlng;
+            var date, time;
+            var origin, destination;
+            
+            var geocodeService = L.esri.Geocoding.geocodeService();
+            
+            var aContent, liContent;
+            var daContent, dliContent;
+            
+            var commute = true;
+            
+            
+            /*function getPaths() {
+                console.log('display paths');
+                $.ajax({
+                    type:'GET',
+                    url: serviceURL,
+                    dataType:"json", // data type get back from server
+                    data:"st=" + dataToServer(), //data sent to server 
+                    success: function(data){
+                        alert('Path created successfully');
+                    },
+                    error: function(jqXHR, textStatus, errorThrown){
+                        alert('Path Finder : ' + textStatus);
+                    }
+                });
+            }*/
+
+            
+            /* This is the function for the search button near the tinput field for location */
+            function searchFunction(){
+                var origin = document.getElementById("origin").value;
+                var destination = document.getElementById("destination").value;
+                getHTTPRequest();
+            }
+            
+            /* This is the HTTPRequest that communicates with the server of OpenTripPlanner with the modified results.
+             * Used in searchFunction(). */
+            function getHTTPRequest(){
+                if(orglat!=null&&orglng!=null&&dstlat!=null&&dstlng!=null&&time!=null&&date!=null){
+                    var xhr = new XMLHttpRequest();
+                    console.log("Gumagana: "+commute);
+                    var mode;
+                    if(commute){
+                        if(train&&bus==false){
+                            mode = "TRAM,RAIL,SUBWAY,FUNICULAR,GONDOLA,WALK";
+                        }
+                        
+                        if(train==false&&bus){
+                            mode = "BUS,WALK";
+                        }
+                        if(train&&bus){
+                            mode = "TRANSIT,WALK"
+                        }
+                    }else{
+                        mode = "CAR";
+                    }
+                    console.log("MODE: "+mode);
+                    
+                    orgdst = orglat + "%2C" + orglng + "|" + dstlat + "%2C" + dstlng + "|" + time + "|" + date + "|" + mode;
+                    xhr.open('GET', "http://192.168.43.224:8000/test="+orgdst, true);
+                    console.log("orgdst: "+orgdst);
+                    
+                    
+                    //xhr.setRequestHeader("Hello",orgdst);
+                    
+                    
+                    xhr.send("Hello");
+                    
+                    //xhr.addEventListener("readystatechange", processRequest, false);
+                    xhr.onreadystatechange = function processRequest(e) {
+
+                        if (xhr.readyState == 4 && xhr.status == 200) {
+                            // time to partay!!!
+                            var resp = xhr.responseText
+                            console.log(resp);
+                            //alert(resp);
+                                placeDataToElements(resp);
+                            
+                            
+                        }   
+                    }
+                    
+                    var org = document.getElementById("origin");
+                    var dst = document.getElementById("destination");
+                    document.getElementById("originDisplay").innerHTML = org.value;
+                    document.getElementById("destinationDisplay").innerHTML = dst.value;
+                }else{
+                    console.log("Origin or Destination or Date or Time is Empty");
+                }
+                
+            }
+                
+                
+            function inputDataCar(resp){
+
+            }
+                
+            
+            
+            /* This functions's parameter gets the info in a JSON format. It then places it to the five best options or routes available to travel on. 
+             * Used in HTTPrequest(). */
+            function placeDataToElements(resp){
+                var obj = JSON.parse(resp);
+                console.log(obj);
+                result = obj;
+                
+                if(commute){
+                    document.getElementById("route_options").style.display = "block";
+                    /* This is the loop which loops through the iteneraries(from JSON objects) to place the correct info at the options. */
+                    for(count = 0; count < obj.Response.plan.itineraries.itineraries.length; count++){
+
+                        /* Computes for the number of hours from the duration (represented in seconds). */
+                        var hours = Math.floor(obj.Response.plan.itineraries.itineraries[count].duration/60/60);
+
+                        /* Computes for the number of minutes subtracted from the number of hours already calculated. */
+                        var minutes = Math.floor(((obj.Response.plan.itineraries.itineraries[count].duration/60/60)-Math.floor(obj.Response.plan.itineraries.itineraries[count].duration/60/60))*60);
+
+                        /* Gets the total number of transfers from the itenerary. */ 
+                        var transfers = obj.Response.plan.itineraries.itineraries[count].transfers
+
+                        /* Gets the total fare cost from the itenerary. */
+                        var fares = obj.Response.plan.itineraries.itineraries[count].fare;
+
+                        /* Places the info on the options in the UI */
+                        var summary = hours + " hr " + minutes + " min ------- P " + (fares) + " ----------- " + transfers;
+
+                        /* Concatenates the name of the "public_option_", <number>, and "detail" to for the ID name "public_option_<number>_details" to call the element from the UI which the info from the JSON will be placed on. */
+                        var name = "public_option_"+(count+1)+"_details";
+                        document.getElementById(name).innerHTML = summary;
+
+                        var liName = "public_option_"+(count+1);
+                        document.getElementById(liName).style.display = "block";
+
+                        //decodePolyline();
+
+                    }
+
+                    inputData(obj);
+                    displayRouteInMap("public_option_1");
+                }else{
+                    displayRouteInMapCar();
+                }
+                
+                
+                    
+                
+                
+                
+            }
+            
+            function displayRouteInMapCar(){
+                var number = 0;
+                if(marker!=null){
+                    for(count = 1; count < marker.length; count++){
+                        mymap.removeLayer(marker[count]);
+                    } 
+                }
+                if(mypolyline!=null){
+                    for(count = 1; count < mypolyline.length; count++){
+                        mymap.removeLayer(mypolyline[count]);
+                    } 
+                }
+               
+                
+   
+                points = polyline.decode(result.Response.plan.itineraries.itineraries.legs.legs.legGeometry.points);
+                var firstpolyline = new L.Polyline(points, {
+                    color: "Blue",
+                    weight: 3,
+                    opacity: 0.7,
+                    smoothFactor: 1
+                });
+                mypolyline.push(firstpolyline);
+                firstpolyline.addTo(mymap);
+                
+                startLat = result.Response.plan.itineraries.itineraries.legs.legs.from.lat;
+                startLng = result.Response.plan.itineraries.itineraries.legs.legs.from.lon;
+                endLat = result.Response.plan.itineraries.itineraries.legs.legs.to.lat;
+                endLng = result.Response.plan.itineraries.itineraries.legs.legs.to.lon;
+
+                marker.push(L.marker([startLat, startLng], {icon: startIcon}).addTo(mymap));
+                //marker.bindPopup("Origin").openPopup();
+
+                marker.push(L.marker([endLat, endLng], {icon: endIcon}).addTo(mymap));
+                //marker.bindPopup("Destination").openPopup();
+                
+                
+            }
+            
+            /* Inputs the data inside the sub options of the options for routes.
+             * Used in placeDataToElements(resp). */
+            function inputData(resp){
+                if(document.getElementById("divAll")!=null){
+                    document.getElementById("divAll").parentNode.removeChild(document.getElementById("divAll"));
+                }
+                var divAll = document.createElement('div');
+                    document.getElementById("commute").appendChild(divAll);
+                    divAll.id = "divAll";
+                    divAll.style.width = '100%';
+                    divAll.style.height = 'inherit';
+                    divAll.style.backgroundColor = "#000000";
+                
+                var div = document.createElement('div');
+                    divAll.appendChild(div);
+                    div.style.width = '100%';
+                    div.style.height = '50px';
+                    div.style.backgroundColor = "#000000";
+                    div.textContent = "-----------------"
+                    
+                for(howMany = 0; howMany < resp.Response.plan.itineraries.itineraries.length; howMany++){
+                    var divName = "public_option_" + (howMany+1) + "_div_";
+                    
+                    var div = document.createElement('div');
+                    divAll.appendChild(div);
+                    div.style.width = '100%';
+                    div.style.height = 'inherit';
+                    div.style.backgroundColor = "#333333";
+                    div.id = divName;
+                    div.classList.add("active");
+                    if(howMany!=0){
+                        div.style.display = "none";
+                    }
+                    
+                    
+                    var count_color = 0;
+                    for(count = 0; count < resp.Response.plan.itineraries.itineraries[howMany].legs.legs.length; count++){
+                        if(count_color > 3){
+                            count_color = 0;
+                        }
+                        var select = document.createElement('a');
+                        document.getElementById(divName).appendChild(select);
+                        select.style.width = "100%";
+                        select.style.height = "300px";
+
+
+
+
+
+                        var height = "auto";
+                        var name = divName + (count+1) +"_a_" ;
+                        select.id = name;
+
+                        var time = document.createElement('a');
+                        document.getElementById(name).appendChild(time);
+                        time.style.width = "125px";
+                        time.style.height = height;
+                        time.style.fontSize = "17px";
+                        time.style.float = "left";
+
+
+                        var timeContent = document.createElement('div');
+                        time.appendChild(timeContent);
+                        timeContent.style.fontSize = "17px";
+                        timeContent.style.backgroundColor = "#898989";
+                        timeContent.style.paddingLeft = "5px";
+
+                        /* Computes for the number of hours from the duration (represented in seconds). */
+                            var hours = Math.floor(resp.Response.plan.itineraries.itineraries[howMany].legs.legs[count].duration/60/60);
+
+                        /* Computes for the number of minutes subtracted from the number of hours already calculated. */
+                            var minutes = Math.floor(((resp.Response.plan.itineraries.itineraries[howMany].legs.legs[count].duration/60/60)-Math.floor(resp.Response.plan.itineraries.itineraries[howMany].legs.legs[count].duration/60/60))*60);
+
+                        //time.textContent = resp.Response.plan.itineraries.itineraries[0].legs.legs[count].duration;
+
+                        //if(hours != 0 && minutes != 0){
+                            timeContent.textContent = hours + " hours " + minutes + " mins";
+                        /*}else if(hours != 0 && minutes == 0){
+                            time.textContent = hours + " hours ";
+                        }else{
+                            time.textContent = minutes + " mins ";
+                        }*/
+
+                        var info = document.createElement('div');
+                        document.getElementById(name).appendChild(info);
+                        info.style.height = height;
+                        info.style.width = "auto";
+
+
+                        var legMode = resp.Response.plan.itineraries.itineraries[howMany].legs.legs[count].mode;
+                        
+                        var mode = document.createElement('div');
+                        info.appendChild(mode);
+                        mode.style.width = "100%";
+                        mode.style.height = "auto";
+                        mode.style.fontSize = "20px";
+                        if(legMode=="BUS"){
+                            mode.style.color = color[bus];
+                            if(resp.Response.plan.itineraries.itineraries[howMany].legs.legs[count].routeId.id.indexOf("PUJ")!=-1){
+                                legMode = "JEEP";
+                                mode.style.color = color[jeep];
+                            }
+                        }else if(legMode=="TRAIN"){
+                            mode.style.color = color[train];
+                        }else{
+                            mode.style.color = color[walk];
+                        }
+                        
+                        mode.textContent = legMode;
+
+
+                        var from = resp.Response.plan.itineraries.itineraries[howMany].legs.legs[count].from.name;
+                        var to = resp.Response.plan.itineraries.itineraries[howMany].legs.legs[count].to.name;
+                        var instruction = document.createElement('div');
+                        info.appendChild(instruction);
+                        instruction.style.width = "100%";
+                        instruction.style.height = "auto";
+                        instruction.style.fontSize = "15px";
+                        if(legMode == "WALK"){
+                            instruction.textContent = "Walk from " + from + " going to " + to + ".";
+                        }else{
+                            instruction.textContent = "Board " + legMode + " from " + from + " going to " + to + ".";
+                        }
+                        instruction.style.paddingBottom = "15px";
+
+
+                        
+
+                        count_color++;
+                    }
+                    /*var div = document.createElement('div');
+                    document.getElementById("commute").appendChild(div);
+                    div.style.width = '100%';
+                    div.style.height = '50px';
+                    div.style.backgroundColor = "#000000";
+                    div.textContent = "-----------------"*/
+                    
+
+                }
+                
+            }
+            
+            
+            function displayContents(content){
+                for(count = 0; count < 3; count++){
+                    var divName = "public_option_" + (count+1) + "_div_";
+                    var routeName = "public_option_" + (count+1) + "_details";
+                    var div = document.getElementById(divName);
+                    var route_option = document.getElementById(routeName);
+                    div.style.display = "none";
+                    route_option.classList.remove("active");
+                }
+                var divName = content + "_div_";
+                var routeName = content + "_details";
+                var div = document.getElementById(divName);
+                var route_option = document.getElementById(routeName);
+                div.style.display = "block";
+                route_option.classList.add("active");
+                
+            }
+            
+            function displayRouteInMap(content){
+            
+                if(marker!=null){
+                    for(count = 1; count < marker.length; count++){
+                        mymap.removeLayer(marker[count]);
+                    } 
+                }
+                if(mypolyline!=null){
+                    for(count = 1; count < mypolyline.length; count++){
+                        mymap.removeLayer(mypolyline[count]);
+                    } 
+                }
+               
+                
+                    var number = content.substring(content.length-1);
+                    number--;
+                if(result.Response.plan.itineraries.itineraries instanceof Array){
+                    console.log("YES");
+                    if(result.Response.plan.itineraries.itineraries[number].legs.legs instanceof Array){
+                        console.log("YES1");
+                        for(count = 0; count < result.Response.plan.itineraries.itineraries[number].legs.legs.length; count++){
+                            var long = result.Response.plan.itineraries.itineraries[number].legs.legs[count].from.lon;
+                            var lat = result.Response.plan.itineraries.itineraries[number].legs.legs[count].from.lat;
+                            if(count == 0){
+                                var point = [new L.LatLng(lat, long)]   
+                            }else{
+                                point.push(new L.LatLng(lat, long));
+                            }
+                            if(result.Response.plan.itineraries.itineraries[number].legs.legs[count].mode=="BUS"){
+                                if(result.Response.plan.itineraries.itineraries[number].legs.legs[count].routeId.id.indexOf("PUJ")!=-1){
+                                    marker.push(L.marker([lat, long], {icon: jeepIcon}).addTo(mymap));
+                                }else{
+                                    marker.push(L.marker([lat, long], {icon: busIcon}).addTo(mymap));
+                                }
+                            }else if(result.Response.plan.itineraries.itineraries[number].legs.legs[count].mode=="TRAIN"){
+                                marker.push(L.marker([lat, long], {icon: trainIcon}).addTo(mymap));
+                            }
+
+
+
+
+                        }
+
+                        for(count = 0; count < result.Response.plan.itineraries.itineraries[number].legs.legs.length; count++){
+
+                            if(result.Response.plan.itineraries.itineraries[number].legs.legs[count].mode=="BUS"){
+                                if(result.Response.plan.itineraries.itineraries[number].legs.legs[count].routeId.id.indexOf("PUJ")!=-1){
+                                    count_color = jeep;
+                                }else{
+                                    count_color = bus;
+                                }
+                            }else if(result.Response.plan.itineraries.itineraries[number].legs.legs[count].mode=="TRAIN"){
+                                count_color = train;
+                            }else{
+                                count_color = walk;
+                            }
+                            points = polyline.decode(result.Response.plan.itineraries.itineraries[number].legs.legs[count].legGeometry.points);
+                            var firstpolyline = new L.Polyline(points, {
+                                color: colorPath[count_color],
+                                weight: 3,
+                                opacity: 0.7,
+                                smoothFactor: 1
+                            });
+                            mypolyline.push(firstpolyline);
+                            firstpolyline.addTo(mymap);
+
+                            if(count == 0){
+                                marker.push(L.marker([points[0][0], points[0][1]], {icon: startIcon}).addTo(mymap));
+                                //marker.bindPopup("Origin").openPopup();
+                            }
+                            if(count == result.Response.plan.itineraries.itineraries[number].legs.legs.length-1){
+                                marker.push(L.marker([points[points.length-1][0], points[points.length-1][1]], {icon: endIcon}).addTo(mymap));
+                                //marker.bindPopup("Destination").openPopup();
+                            }
+                        }
+                    }else{
+                        
+                    }
+                }else{
+                    console.log("NO");
+                        var long = result.Response.plan.itineraries.itineraries.legs.legs.from.lon;
+                        var lat = result.Response.plan.itineraries.itineraries.legs.legs.from.lat;
+                        var elong = result.Response.plan.itineraries.itineraries.legs.legs.to.lon;
+                        var elat = result.Response.plan.itineraries.itineraries.legs.legs.to.lat;
+                        if(result.Response.plan.itineraries.itineraries.legs.legs.mode=="BUS"){
+                            if(result.Response.plan.itineraries.itineraries.legs.legs.routeId.id.indexOf("PUJ")!=-1){
+                                marker.push(L.marker([lat, long], {icon: jeepIcon}).addTo(mymap));
+                            }else{
+                                marker.push(L.marker([lat, long], {icon: busIcon}).addTo(mymap));
+                            }
+                        }else if(result.Response.plan.itineraries.itineraries.legs.legs.mode=="TRAIN"){
+                            marker.push(L.marker([lat, long], {icon: trainIcon}).addTo(mymap));
+                        }
+
+                        if(result.Response.plan.itineraries.itineraries.legs.legs.mode=="BUS"){
+                            if(result.Response.plan.itineraries.itineraries.legs.legs.routeId.id.indexOf("PUJ")!=-1){
+                                count_color = jeep;
+                            }else{
+                                count_color = bus;
+                            }
+                        }else if(result.Response.plan.itineraries.itineraries.legs.legs.mode=="TRAIN"){
+                            count_color = train;
+                        }else{
+                            count_color = walk;
+                        }
+                        var pointA = new L.LatLng(lat, long);
+                        var pointB = new L.LatLng(elat, elong);
+                        var pointList = [pointA, pointB];
+                        var firstpolyline = new L.Polyline(pointList, {
+                            color: colorPath[walk],
+                            weight: 3,
+                            opacity: 0.7,
+                            smoothFactor: 1
+                        });
+                        mypolyline.push(firstpolyline);
+                        firstpolyline.addTo(mymap);
+
+
+                            marker.push(L.marker([points[0][0], points[0][1]], {icon: startIcon}).addTo(mymap));
+                            //marker.bindPopup("Origin").openPopup();
+
+
+                            marker.push(L.marker([points[points.length-1][0], points[points.length-1][1]], {icon: endIcon}).addTo(mymap));
+                            //marker.bindPopup("Destination").openPopup();
+
+                }
+                
+                
+                
+            }
+            
+            
+            function turnOnAddOrigin(){
+                //console.log("ORIGIN 1: "+origin);
+                if(origin==null||origin==false){
+                if(destination==null||destination==false){
+                    origin = true;
+                    document.getElementById("origin_button").classList.add("search_button_cancel");
+                    document.getElementById("origin_button").style.backgroundColor = "orange";
+                    document.getElementById("origin_button").style.borderColor = "orange";
+                    document.getElementById("origin_button").value = "Cancel";
+                }
+                }else{
+                    origin = false;
+                    document.getElementById("origin_button").classList.remove("search_button_cancel");
+                    document.getElementById("origin_button").style.backgroundColor = "green";
+                    document.getElementById("origin_button").style.borderColor = "green";
+                    document.getElementById("origin_button").value = "Put Origin";
+                }
+                
+                //console.log("ORIGIN 2: "+origin);
+            }
+            
+            function turnOnAddDestination(){
+                //console.log("DESTINATION 1: "+destination);
+                if(destination==null||destination==false){
+                if(origin==null||origin==false){
+                    destination = true;
+                    document.getElementById("destination_button").classList.add("search_button_cancel");
+                    document.getElementById("destination_button").style.backgroundColor = "orange";
+                    document.getElementById("destination_button").style.borderColor = "orange";
+                    document.getElementById("destination_button").value = "Cancel";
+                }
+                }else{
+                    document.getElementById("destination_button").classList.remove("search_button_cancel");
+                    document.getElementById("destination_button").style.backgroundColor = "red";
+                    document.getElementById("destination_button").style.borderColor = "red";
+                    document.getElementById("destination_button").value = "Put Destination";
+                    destination = false;
+                }
+                //console.log("DESTINATION 2: "+destination);
+            }
+            /*function decodePolyline(){
+                var encoded_polyline = result.Response.plan.itineraries.itineraries[0].legs.legs[0].legGeometry.points;
+                for(count = 0; count < encoded_polyline.length; count++){
+                    if(count == 0){
+                        var ascii_char = [encoded_polyline.charCodeAt(count)];
+                        var minus63 = [encoded_polyline.charCodeAt(count)-63];
+                        var binary = [(minus63[count] >>> 0).toString(2)];
+                    }else{
+                        ascii_char.push(encoded_polyline.charCodeAt(count));
+                        minus63.push(encoded_polyline.charCodeAt(count)-63);
+                        binary.push((minus63[count] >>> 0).toString(2));
+                    }
+                }
+                for(count = 0; count < binary.length; count++){
+                    if(binary[count].length < 7){
+                        for(howMany = 0; howMany < 7; howMany++){
+                            binary = 0+binary;
+                        }
+                    }
+                }
+                console.log(ascii_char);
+                console.log(minus63);
+                console.log(binary);
+            }*/
+            
+            function setDate(content){
+                var dateElement = document.getElementById(content);
+                var splitDate = dateElement.value.split("-");
+                var completeDate = splitDate[1] + "-" + splitDate[2] + "-" + splitDate[0];
+                //console.log(completeDate);
+                date = completeDate;
+            }
+
+            
+            function setTime(content){
+                var timeElement = document.getElementById(content);
+                var splitTime = timeElement.value.split(":");
+                var hours = splitTime[0];
+                var morning = true;
+                var amOrPm;
+                if(hours>11){
+                    hours = hours - 12;
+                    morning = false;
+                }
+                if(hours == 0){
+                    hours = 12;
+                }
+                if(morning){
+                    amOrPm = "am";
+                }else{
+                    amOrPm = "pm"
+                }
+                var completeTime = hours + ":" + splitTime[1] + amOrPm;
+                //console.log(completeTime);
+                time = completeTime;
+            }
+            
+            function originChange(content){
+                var org = document.getElementById(content);
+                //console.log(org.value);
+                if(org.value!=""){
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('GET', "http://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/suggest?text="+org.value+"&countryCode=PHL&f=pjson", true);
+                    xhr.send();
+
+                    //xhr.addEventListener("readystatechange", processRequest, false);
+                    xhr.onreadystatechange = function processRequest(e) {
+
+                        if (xhr.readyState == 4 && xhr.status == 200) {
+                            // time to partay!!!
+                            var resp = xhr.responseText
+                            //alert(resp);
+                            //console.log(resp);
+                            addOriginSuggestion(resp)
+                        }   
+                    }
+                    document.getElementById("dynamicInputOrigin").style.display= "block";
+                }else{
+                    document.getElementById("dynamicInputOrigin").style.display= "none";
+                }
+            }
+            
+            
+            
+            function addOriginSuggestion(content){
+                
+                var obj = JSON.parse(content);
+                //var x = document.getElementById("select_origin");
+                var originSuggestion = document.getElementById("origin_suggestion");
+                
+                //console.log(obj.suggestions.length);
+                
+                if(liContent!=null){
+                    //console.log(liContent);
+                    for(count=0; count<liContent.length; count++){
+                        //liContent[count].removeChild(aContent[count]);
+                        originSuggestion.removeChild(liContent[count]);
+                    }  
+                }
+                
+                liContent=null;
+                aContent = null;
+                for(count = 0; count < obj.suggestions.length; count++){
+                    
+                    //var css = 'ul.tabcontent1 li a:hover{background-color: #ddd}';
+                    var style = document.createElement('style');
+
+                    /*if (style.styleSheet) {
+                        style.styleSheet.cssText = css;
+                    } else {
+                        style.appendChild(document.createTextNode(css));
+                    }*/
+
+                    /*var option = document.createElement("option");
+                    option.innerHTML = obj.suggestions[count].text;
+                    x.add(option);*/
+                    
+    
+                    
+                    if(liContent==null){
+                     liContent = [document.createElement("a")];
+                    }else{
+                        liContent.push(document.createElement("a"));
+                    }
+                    
+                    liContent[count].id = "origin_suggestion_"+(count+1);
+                    liContent[count].style.width = "100%";
+                    liContent[count].style.padding = "0px"; 
+                    
+                    
+                    if(aContent==null){
+                     aContent = [document.createElement("a")];
+                    }else{
+                        aContent.push(document.createElement("a"));
+                    }
+                    aContent[count].id="origin_suggestion_"+(count+1)+"_name";
+                    aContent[count].href = "javascript:void(0)";
+                    aContent[count].style.width = "100%";
+                    aContent[count].style.display = "inline-block";
+                    aContent[count].style.color = "white";
+                    aContent[count].style.textAlign = "center";
+                    aContent[count].style.paddingTop = "5px";
+                    aContent[count].style.paddingBottom = "5px";
+                    aContent[count].style.textDecoration = "none";
+                    aContent[count].style.fontSize = "17px";
+                    aContent[count].style.transition = "0.3s";
+                    aContent[count].style.backgroundColor = "Black"
+                    
+                    /*aContent[count].onfocus = 
+                    aContent[count].onmouseover = function(){
+                        aContent[count].classList.add("active");
+                        console.log("In" + aContent[count].id);
+                    };;
+                    aContent[count].onmouseout = function(){
+                        document.activeElement.style.backgroundColor = "Black";
+                        console.log("Out" + aContent[count].id);
+                    };*/
+                    //var temp = aContent.style.cssText;
+                    //console.log("Before: "+temp);
+                    //aContent.style.cssText = temp + "color: blue; a:hover {background-color: yellow;};";
+                    //console.log("After: "+aContent.style.cssText)
+                    //console.log(aContent[count].id);
+                    //console.log(liContent[count].id);
+                    
+                    aContent[count].innerHTML = obj.suggestions[count].text;
+                    aContent[count].value = obj.suggestions[count].magicKey;
+                    liContent[count].appendChild(aContent[count]);
+                    originSuggestion.appendChild(liContent[count]);
+                    //document.getElementById("main_style").appendChild(style);
+                }
+                //console.log("Size of ARRAY: "+aContent.length);
+                //document.getElementById("dynamicInputOrigin").style.display= "block";
+                
+            }
+            
+            function destinationChange(content){
+                var org = document.getElementById(content);
+               // console.log(org.value);
+                if(org.value!=""){
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('GET', "http://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/suggest?text="+org.value+"&countryCode=PHL&f=pjson", true);
+                    xhr.send();
+
+                    //xhr.addEventListener("readystatechange", processRequest, false);
+                    xhr.onreadystatechange = function processRequest(e) {
+
+                        if (xhr.readyState == 4 && xhr.status == 200) {
+                            // time to partay!!!
+                            var resp = xhr.responseText
+                            //alert(resp);
+                            //console.log(resp);
+                            addDestinationSuggestion(resp)
+                        }   
+                    }
+                    document.getElementById("dynamicInputDestination").style.display= "block";
+                }else{
+                    document.getElementById("dynamicInputDestination").style.display= "none";
+                }
+            }
+            
+            
+            
+            function addDestinationSuggestion(content){
+                
+                var obj = JSON.parse(content);
+                //var x = document.getElementById("select_destination");
+                var destinationSuggestion = document.getElementById("destination_suggestion");
+                
+                //console.log(obj.suggestions.length);
+                
+                if(dliContent!=null){
+                    //console.log(dliContent);
+                    for(count=0; count<dliContent.length; count++){
+                        //liContent[count].removeChild(aContent[count]);
+                        destinationSuggestion.removeChild(dliContent[count]);
+                    }  
+                }
+                
+                dliContent=null;
+                daContent = null;
+                for(count = 0; count < obj.suggestions.length; count++){
+                    
+                    //var css = 'ul.tabcontent1 li a:hover{background-color: #ddd}';
+                    var style = document.createElement('style');
+
+                    /*if (style.styleSheet) {
+                        style.styleSheet.cssText = css;
+                    } else {
+                        style.appendChild(document.createTextNode(css));
+                    }*/
+
+                    /*var option = document.createElement("option");
+                    option.innerHTML = obj.suggestions[count].text;
+                    x.add(option);*/
+                    
+    
+                    
+                    if(dliContent==null){
+                     dliContent = [document.createElement("a")];
+                    }else{
+                        dliContent.push(document.createElement("a"));
+                    }
+                    
+                    dliContent[count].id = "destination_suggestion_"+(count+1);
+                    dliContent[count].style.width = "100%";
+                    dliContent[count].style.padding = "0px"; 
+                    
+                    
+                    if(daContent==null){
+                     daContent = [document.createElement("a")];
+                    }else{
+                        daContent.push(document.createElement("a"));
+                    }
+                    daContent[count].id="destination_suggestion_"+(count+1)+"_name";
+                    daContent[count].href = "javascript:void(0)";
+                    daContent[count].style.width = "100%";
+                    daContent[count].style.display = "inline-block";
+                    daContent[count].style.color = "white";
+                    daContent[count].style.textAlign = "center";
+                    daContent[count].style.paddingTop = "5px";
+                    daContent[count].style.paddingBottom = "5px";
+                    daContent[count].style.textDecoration = "none";
+                    daContent[count].style.fontSize = "17px";
+                    daContent[count].style.transition = "0.3s";
+                    daContent[count].style.backgroundColor = "Black"
+                    
+                    /*aContent[count].onfocus = 
+                    aContent[count].onmouseover = function(){
+                        aContent[count].classList.add("active");
+                        console.log("In" + aContent[count].id);
+                    };;
+                    aContent[count].onmouseout = function(){
+                        document.activeElement.style.backgroundColor = "Black";
+                        console.log("Out" + aContent[count].id);
+                    };*/
+                    //var temp = aContent.style.cssText;
+                    //console.log("Before: "+temp);
+                    //aContent.style.cssText = temp + "color: blue; a:hover {background-color: yellow;};";
+                    //console.log("After: "+aContent.style.cssText)
+                    //console.log(aContent[count].id);
+                    //console.log(liContent[count].id);
+                    
+                    daContent[count].innerHTML = obj.suggestions[count].text;
+                    daContent[count].value = obj.suggestions[count].magicKey;
+                    dliContent[count].appendChild(daContent[count]);
+                    destinationSuggestion.appendChild(dliContent[count]);
+                    //document.getElementById("main_style").appendChild(style);
+                }
+                //console.log("Size of ARRAY D: "+daContent.length);
+                //document.getElementById("dynamicInputOrigin").style.display= "block";
+                
+            }
+            
+            document.onmouseover = function(e) {
+                if(aContent!=null){
+                    for(count=0; count < aContent.length; count++){
+                        if(e.target.id==aContent[count].id){
+                            aContent[count].style.backgroundColor = "#898989";
+                        }
+                    }
+                }
+                if(daContent!=null){
+                    for(count=0; count < daContent.length; count++){
+                        if(e.target.id==daContent[count].id){
+                            daContent[count].style.backgroundColor = "#898989";
+                        }
+                    }
+                }
+                 
+                //console.log(e.target.id);
+                
+            }
+            
+            document.onmouseout = function(e) {
+                if(aContent!=null){
+                    for(count=0; count < aContent.length; count++){
+                        if(e.target.id==aContent[count].id){
+                            aContent[count].style.backgroundColor = "Black";
+                        }
+                    }
+                }
+                if(daContent!=null){
+                    for(count=0; count < daContent.length; count++){
+                        if(e.target.id==daContent[count].id){
+                            daContent[count].style.backgroundColor = "Black";
+                        }
+                    }
+                }
+                
+                
+                //console.log(e.target.id);
+            }
+            
+            
+            document.onclick = function(e) {
+                if(aContent!=null){
+                    for(count=0; count < aContent.length; count++){
+                        if(e.target.id==aContent[count].id){
+                            document.getElementById("origin").value = aContent[count].innerHTML;
+                            document.getElementById("dynamicInputOrigin").style.display = "none";
+                            var xhr = new XMLHttpRequest();
+                            xhr.open('GET', "http://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?singleLine="+document.getElementById("origin")+"&magicKey="+aContent[count].value+"&f=pjson", true);
+                            
+                    
+                            //xhr.setRequestHeader("Hello",orgdst);
+
+
+                            xhr.send();
+
+                            //xhr.addEventListener("readystatechange", processRequest, false);
+                            xhr.onreadystatechange = function processRequest(e) {
+
+                                if (xhr.readyState == 4 && xhr.status == 200) {
+                                    // time to partay!!!
+                                    var resp = xhr.responseText
+                                    //alert(resp);
+                                    console.log(resp);
+                                    var obj = JSON.parse(resp);
+                                    if(originMarker!=null){
+                                        mymap.removeLayer(originMarker);
+                                    }
+                                    console.log(obj);
+                                    //alert("Your ORIGIN: Lat, Lon : " + e.latlng.lat + ", " + e.latlng.lng);
+                                    orglat = obj.candidates[0].location.y;
+                                    orglng = obj.candidates[0].location.x;
+                                    console.log(orglat);
+                                    console.log(orglng);
+                                    originMarker = L.marker([orglat, orglng],{icon: startIcon}).addTo(mymap).bindPopup("Origin: "+document.getElementById("origin").value).openPopup();
+                                }   
+                            }
+                        }
+                    }
+                }
+                if(daContent!=null){
+                    for(count=0; count < daContent.length; count++){
+                        if(e.target.id==daContent[count].id){
+                            document.getElementById("destination").value = daContent[count].innerHTML;
+                            document.getElementById("dynamicInputDestination").style.display = "none";
+                            var xhr = new XMLHttpRequest();
+                            xhr.open('GET', "http://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?singleLine="+document.getElementById("destination")+"&magicKey="+daContent[count].value+"&f=pjson", true);
+                            
+                    
+                            //xhr.setRequestHeader("Hello",orgdst);
+
+
+                            xhr.send();
+
+                            //xhr.addEventListener("readystatechange", processRequest, false);
+                            xhr.onreadystatechange = function processRequest(e) {
+
+                                if (xhr.readyState == 4 && xhr.status == 200) {
+                                    // time to partay!!!
+                                    var resp = xhr.responseText
+                                    //alert(resp);
+                                    console.log(resp);
+                                    var obj = JSON.parse(resp);
+                                    if(destinationMarker!=null){
+                                        mymap.removeLayer(destinationMarker);
+                                    }
+                                    console.log(obj);
+                                    //alert("Your ORIGIN: Lat, Lon : " + e.latlng.lat + ", " + e.latlng.lng);
+                                    dstlat = obj.candidates[0].location.y;
+                                    dstlng = obj.candidates[0].location.x;
+                                    console.log(dstlat);
+                                    console.log(dstlng);
+                                    destinationMarker = L.marker([dstlat, dstlng],{icon: endIcon}).addTo(mymap).bindPopup("Destination: "+document.getElementById("destination").value).openPopup();
+                                }   
+                            }
+                        }
+                    }
+                }
+                
+                //console.log(e.target.id);
+            }
+            
+
+            
+            
+            
+        </script>
+        
+       
+        
+        <style>
+            #mapid { height: inherit; }
+        </style>
+        
+        
+        
+    </head>
+    <body>
+        
+        
+        <!-- CSS STYLE SHEET in general -->
+        <style type="text/css" id="main_style">
+            html { height:  100%; width: 100%; margin: 0; color: white; font-family: 'Source Sans Pro', sans-serif;
+            }
+            body { height: 100%; width: 100%; margin: 0; }
+            
+            div.container {
+                width: 100%;  
+                height: 100%;
+            }
+            /*div.left, div.right {
+                float: left; 
+            }*/
+            div.left {
+                background-color: #1d1d1d;
+                width: 380px;
+                height: 100%;
+                max-height: 100%;
+                overflow-y: scroll;
+                float: left; 
+            }
+            div.right {
+                background-color: gainsboro;
+                width: auto;
+                height: 100%;
+                overflow:hidden;
+                
+            }
+            #commute{
+                display: block;
+            }
+            #travel_time{
+                display: block;
+            }     
+            /* Dropdown Button */
+            .dropbtn {
+                background-color: #4CAF50;
+                color: white;
+                padding: 16px;
+                font-size: 16px;
+                border: none;
+                cursor: pointer;
+            }
+
+            /* Dropdown button on hover & focus */
+            .dropbtn:hover, .dropbtn:focus {
+                background-color: #3e8e41;
+            }
+
+            /* The container <div> - needed to position the dropdown content */
+            .dropdown {
+                position: relative;
+                display: inline-block;
+            }
+
+            /* Dropdown Content (Hidden by Default) */
+            .dropdown-content {
+                display: none;
+                position: absolute;
+                background-color: #f9f9f9;
+                min-width: 160px;
+                box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+                z-index: 1;
+            }
+
+            /* Links inside the dropdown */
+            .dropdown-content a {
+                color: black;
+                padding: 12px 16px;
+                text-decoration: none;
+                display: block;
+            }
+
+            /* Change color of dropdown links on hover */
+            .dropdown-content a:hover {background-color: #f1f1f1}
+
+            /* Show the dropdown menu (use JS to add this class to the .dropdown-content container when the user clicks on the dropdown button) */
+            .show {display:block;}
+            
+            div .invisible {
+                display: none;
+            } 
+            
+        </style>
+        
+        
+        <!-- The CONTAINER of the WHOLE THING! -->
+        <div class="container">
+        
+            <!-- LEFT TAB CONTENT PANE where the options are located -->
+            <div class="left">
+                
+                <!-- ORIGIN and DESTINATION input -->
+                <div class="search_Group">
+                    <div class="search_div_left">
+                        <div class="search_div">
+                            <div class="search_div_search">
+                                
+                                <input id="origin" class="search" type="type" placeholder="Enter Place of Origin" onkeyup="originChange(this.id)"/>
+                                <div id="dynamicInputOrigin" class="dynamicInput" style="display: none">
+                                    <ul id="origin_suggestion" class="tabcontent1" style="display: block">
+                                    </ul>
+                                </div>
+                                
+                            </div>
+                            <div class="search_div_button">
+                                <input id="origin_button" class="search_button" type="button" value="Put Origin" onclick="turnOnAddOrigin()" style="color:white;background-color:green;border-color: green"/>
+                            </div>
+                        </div>
+                        <div class="search_div">
+                            <div class="search_div_search">
+                                <input id="destination" class="search" type="type" placeholder="Enter Place of Destination" onkeyup="destinationChange(this.id)"/>
+                                <div id="dynamicInputDestination" class="dynamicInput" style="display: none">
+                                    <ul id="destination_suggestion" class="tabcontent1" style="display: block">
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="search_div_button">
+                                <input id="destination_button" class="search_button" type="button" value="Put Destination" onclick="turnOnAddDestination()" style="color:white;background-color:red;border-color: red"/>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    <div class="search_div_right">
+                        <button class="search_Submit" value="Search" onclick="searchFunction()">Search</button>
+                    </div>
+                </div>
+                
+                <!-- DATE and TIME for travelling input -->
+                <div class="date_time_div_left">
+                    <p>
+                        Date:
+                    </p>
+                    <input id="date" class="date_time" type="date" placeholder="Time" oninput="setDate(this.id)"/>
+                    <br/>
+                    <p>
+                        Time:
+                    </p>
+                    <input id="time" class="date_time" type="time" placeholder="Enter Place of Origin" oninput="setTime(this.id)"/>
+                    <br/>
+                    <div class="dropdown">
+                      <button class="date_time_dropdown" onclick="myFunction()" class="dropbtn">Leaving at</button>
+                      <div id="myDropdown" class="dropdown-content">
+                        <a href="#">Leaving at</a>
+                        <a href="#">Arriving at</a>
+                      </div>
+                    </div>
+                </div>
+                
+                <!-- ORIGIN and DESTINATION addresses -->
+                <p id="originDisplay">
+                    
+                </p>
+                <p id="destinationDisplay">
+                    
+                </p>
+
+                    <!-- Table for the TRAVEL BY options (bus, jeep, train) -->
+                    <ul class="tab">
+                        <li><a href="javascript:void(0)" class="tablinks active" onclick="openCity(event, 'commute')">Commute</a></li>
+                        <li><a href="javascript:void(0)" class="tablinks" onclick="openCity(event, 'drive')">Drive</a></li>
+                    </ul>
+                
+                    <!-- Contents of COMMUTE -->
+                    <div id="commute" class="tabcontent">
+                        
+                        
+                        <!-- Table for the TRAVEL BY options (bus, jeep, train) -->
+                        <p>
+                            Travel By:
+                        </p>
+                        
+                        <ul class="tab_filter" name="tabf">
+                            <li><a href="javascript:void(0)" class="tabf active" onclick="filterTransport(event, 'bus')">Bus</a></li>
+                            <li><a href="javascript:void(0)" class="tabf active" onclick="filterTransport(event, 'jeep')">Jeep</a></li>
+                            <li><a href="javascript:void(0)" class="tabf active" onclick="filterTransport(event, 'train')">Train</a></li>
+                        </ul>
+                        
+                        <!-- Table for the ARRANGE BY options (travel_time, fare, transfer) -->
+                        <p>
+                            Arrange By:
+                        </p>
+                        
+                        <ul class="tab2" name="taby">
+                            <li><a href="javascript:void(0)" class="tab1 active" onclick="openRoute(event, 'travel_time')">Travel Time</a></li>
+                            <li><a href="javascript:void(0)" class="tab1" onclick="openRoute(event, 'fare')">Fare</a></li>
+                            <li><a href="javascript:void(0)" class="tab1" onclick="openRoute(event, 'transfer')">Transfers</a></li>
+                        </ul>
+                        
+                        <!-- Table for the OPTION SELECTION with default of travel_time -->
+                        <div id="tabcontent1">
+                        <ul id="route_options" class="tabcontent1" style="display: none">
+                            <li id="public_option_1" onclick="displayContents(this.id);displayRouteInMap(this.id);" style="display: none"><div id="public_option_1_icons"></div><a id="public_option_1_details" href="javascript:void(0)" class="active">
+                                45 min ------------ P 50 ----------- 3
+                            </a></li>
+                            <li id="public_option_2" onclick="displayContents(this.id);displayRouteInMap(this.id);" style="display: none"><div id="public_option_2_icons"></div><a id="public_option_2_details" href="javascript:void(0)">
+                                1 hr 20 min ------- P 35 ----------- 3
+                            </a></li>
+                            <li id="public_option_3" onclick="displayContents(this.id);displayRouteInMap(this.id);" style="display: none"><div id="public_option_3_icons"></div><a id="public_option_3_details" href="javascript:void(0)">
+                                1 hr 45 min ------- P 60 ----------- 2
+                            </a></li>
+                            <li id="public_option_4" onclick="displayContents(this.id);displayRouteInMap(this.id);" style="display: none"><div id="public_option_4_icons"></div><a id="public_option_4_details" href="javascript:void(0)">
+                                1 hr 45 min ------- P 60 ----------- 2
+                            </a></li>
+                            <li id="public_option_5" onclick="displayContents(this.id);displayRouteInMap(this.id);" style="display: none"><div id="public_option_5_icons"></div><a id="public_option_5_details" href="javascript:void(0)">
+                                1 hr 45 min ------- P 60 ----------- 2
+                            </a></li>
+                        </ul>
+                        </div>
+                    </div>
+                
+                
+                    <!-- Contents of DRIVE -->
+                    <div id="drive" class="tabcontent">
+                        
+                        <!-- Table for the TOLL? -->
+                        <ul class="tabt_2" name="tabt_2">
+                            <li><a href="javascript:void(0)" class="tabt_2 active" onclick="toll_2(event, 'toll_2')">Toll? <input id="toll_checkbox" type="checkbox" checked/></a></li>
+                        </ul>
+
+                        <!-- Table for the ARRANGE BY options (travel_time, fare, transfer) -->
+                        <p>
+                            Arrange By:
+                        </p>
+                        <ul class="tab2_2" name="taby_2">
+                            <li><a href="javascript:void(0)" class="tab1_2 active" onclick="openRoute_2(event, 'travel_time_2')">Travel Time</a></li>
+                            <li><a href="javascript:void(0)" class="tab1_2" onclick="openRoute_2(event, 'fare_2')">Toll Fee</a></li>
+                        </ul>
+
+                        <!-- Table for the OPTION SELECTION with default of travel_time -->
+                        <div id="tabcontent1_2">
+                        <ul id="travel_time_2" class="tabcontent1_2">
+                            <li><a href="javascript:void(0)"  id="joe" class="toll">
+                                45 min ------------ P 50
+                            </a></li>
+                            <li><a href="javascript:void(0)"  class="">
+                                1 hr 20 min ------- No Toll
+                            </a></li>
+                            <li><a href="javascript:void(0)"  class="toll">
+                                1 hr 45 min ------- P 60
+                            </a></li>
+                            <li><a href="javascript:void(0)"  class="toll">
+                                1 hr 45 min ------- P 60
+                            </a></li>
+                            <li><a href="javascript:void(0)"  class="toll">
+                                1 hr 45 min ------- P 60
+                            </a></li>
+                        </ul>
+                        </div>
+                    </div>
+            </div>
+    
+            
+            
+            <!-- RIGHT TAB CONTENT PANE where the map is located -->
+            <div class="right">
+                <div id="mapid">
+                    <script>
+                    var mymap = L.map('mapid').setView([14.5995, 120.9842], 11);
+                    var originMarker, destinationMarker;
+
+                    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+                        attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+                        maxZoom: 18,
+                        id: 'mapbox.streets',
+                        accessToken: 'pk.eyJ1IjoicmFwcG9naTEiLCJhIjoiY2ozcGdqODhnMDBraTMzbnl2eXVscTQ4ZyJ9.8t_GAIcWPs8wXBGLGpnDGw'
+                    }).addTo(mymap); 
+                    mymap.on('click', function(e) {
+                        if(origin){
+                            if(originMarker!=null){
+                                mymap.removeLayer(originMarker);
+                            }
+                            //alert("Your ORIGIN: Lat, Lon : " + e.latlng.lat + ", " + e.latlng.lng);
+                            orglat = e.latlng.lat;
+                            orglng = e.latlng.lng;
+                             geocodeService.reverse().latlng(e.latlng).run(function(error, result) {
+                                originMarker = L.marker(result.latlng,{icon: startIcon}).addTo(mymap).bindPopup("Origin: "+result.address.Match_addr).openPopup();
+                                document.getElementById("origin").value = result.address.Match_addr;
+                            });
+                            document.getElementById("origin_button").style.backgroundColor = "green";
+                            document.getElementById("origin_button").style.borderColor = "green";
+                            document.getElementById("origin_button").value = "Put Origin";
+                            origin = false;
+                            //console.log(orglat);
+                            //console.log(orglng);
+                        }
+                        if(destination){
+                            if(destinationMarker!=null){
+                                mymap.removeLayer(destinationMarker);
+                            }
+                            //alert("Your DESTINATION: Lat, Lon : " + e.latlng.lat + ", " + e.latlng.lng);
+                            dstlat = e.latlng.lat;
+                            dstlng = e.latlng.lng;
+                            geocodeService.reverse().latlng(e.latlng).run(function(error, result) {
+                                destinationMarker = L.marker(result.latlng,{icon: endIcon}).addTo(mymap).bindPopup("Destination: "+result.address.Match_addr).openPopup();
+                                document.getElementById("destination").value = result.address.Match_addr;
+                            });
+                            document.getElementById("destination_button").style.backgroundColor = "red";
+                            document.getElementById("destination_button").style.borderColor = "red";
+                            document.getElementById("destination_button").value = "Put Destination";
+                            destination = false;
+                        }
+                        
+                       
+                        
+                    });
+                        
+                var startIcon = L.icon({
+                    iconUrl: 'Icon_Start.png',
+                    shadowUrl: 'Icon_Shadow.png',
+
+                    iconSize:     [76, 76], // size of the icon
+                    shadowSize:   [76, 76], // size of the shadow
+                    iconAnchor:   [38, 76], // point of the icon which will correspond to marker's location
+                    shadowAnchor: [30, 76],  // the same for the shadow
+                    popupAnchor:  [0, -70] // point from which the popup should open relative to the iconAnchor
+                });
+                var endIcon = L.icon({
+                    iconUrl: 'Icon_End.png',
+                    shadowUrl: 'Icon_Shadow.png',
+
+                    iconSize:     [76, 76], // size of the icon
+                    shadowSize:   [76, 76], // size of the shadow
+                    iconAnchor:   [38, 76], // point of the icon which will correspond to marker's location
+                    shadowAnchor: [30, 76],  // the same for the shadow
+                    popupAnchor:  [0, -70] // point from which the popup should open relative to the iconAnchor
+                });
+                var busIcon = L.icon({
+                    iconUrl: 'Icon_Bus.png',
+                    shadowUrl: 'Icon_Shadow.png',
+
+                    iconSize:     [70, 70], // size of the icon
+                    shadowSize:   [70, 70], // size of the shadow
+                    iconAnchor:   [36, 70], // point of the icon which will correspond to marker's location
+                    shadowAnchor: [30, 76],  // the same for the shadow
+                    popupAnchor:  [0, -70] // point from which the popup should open relative to the iconAnchor
+                });
+                var jeepIcon = L.icon({
+                    iconUrl: 'Icon_Jeep.png',
+                    shadowUrl: 'Icon_Shadow.png',
+
+                    iconSize:     [70, 70], // size of the icon
+                    shadowSize:   [70, 70], // size of the shadow
+                    iconAnchor:   [36, 70], // point of the icon which will correspond to marker's location
+                    shadowAnchor: [30, 76],  // the same for the shadow
+                    popupAnchor:  [0, -70] // point from which the popup should open relative to the iconAnchor
+                });
+                var trainIcon = L.icon({
+                    iconUrl: 'Icon_Train.png',
+                    shadowUrl: 'Icon_Shadow.png',
+
+                    iconSize:     [70, 70], // size of the icon
+                    shadowSize:   [70, 70], // size of the shadow
+                    iconAnchor:   [36, 70], // point of the icon which will correspond to marker's location
+                    shadowAnchor: [30, 76],  // the same for the shadow
+                    popupAnchor:  [0, -70] // point from which the popup should open relative to the iconAnchor
+                });
+                    </script>
+                    <script>
+                        
+
+                    // create the geocoding control and add it to the map
+                    /*var searchControl = L.esri.Geocoding.geosearch().addTo(mymap);
+                        //L.esri.Geocoding.geosearch("DLSU")
+                        
+
+                    // create an empty layer group to store the results and add it to the map
+                    var results = L.layerGroup().addTo(mymap);
+
+                    // listen for the results event and add every result to the map
+                    searchControl.on("results", function(data) {
+                        results.clearLayers();
+                        console.log(data);
+                        for (var i = data.results.length - 1; i >= 0; i--) {
+                            results.addLayer(L.marker(data.results[i].latlng));
+                            //var option = document.createElement("option");
+                            //option.text = data.results[i].latlng
+                            
+                        }
+                    });
+                        
+                        
+                    function searchOrigin(){
+                        var originElement = document.getElementById("origin");
+                        //originElement
+                        searchControl = L.esri.Geocoding.geosearch().setPosition("DLSU");
+                        console.log("Searching Origin");
+                    }*/
+                    </script>
+                </div>
+            </div>
+            
+            
+            
+        </div>
+        <!--<select id="select_origin">
+            <option value="volvo">Volvo</option>
+        </select>!-->
+        
+            
+
+    </body>
+</html>
